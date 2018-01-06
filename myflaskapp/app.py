@@ -45,6 +45,7 @@ def articles():
     #close connection
     cur.close()
 
+
 # Gia otan anoigw to article na emfanizei to swsto periexomeno
 @app.route('/article/<string:id>/')
 def article(id):
@@ -52,8 +53,10 @@ def article(id):
     cur = mysql.connection.cursor()
     #Get Article
     result = cur.execute("SELECT * FROM articles WHERE id = %s", [id])
+    #Commit
     article = cur.fetchone()
     return render_template('article.html', article=article)
+
 
 #klash gia elenxo ths formas
 class RegisterForm(Form):
@@ -177,7 +180,7 @@ def dashboard():
 #Articles Form class
 class ArticleForm(Form):
     title = StringField('Title', [validators.Length(min=1, max=200)])
-    body = TextAreaField('Body', [validators.Length(min=30)])
+    body = TextAreaField('Body', [validators.Length(min=10)])
 
 
 #Add article
@@ -246,6 +249,111 @@ def delete_article(id):
     cur.close()
     flash('Article Deleted', 'success')
     return redirect(url_for('dashboard'))
+
+#Commnts Form class
+class CommentForm(Form):
+    body = TextAreaField('Body', [validators.Length(min=10)])
+
+#Articles
+@app.route('/comments')
+def comments():
+    #Create cursor
+    cur = mysql.connection.cursor()
+    #Get Articles
+    result = cur.execute("SELECT * FROM comments")
+    comments = cur.fetchall()
+    if result > 0 :
+        return render_template('comments.html', comments=comments)
+    else:
+        msg = 'No comments Found'
+        return render_template('comments.html', msg=msg)
+    #close connection
+    cur.close()
+
+
+#gia otan anoigw to article na emfanizontai ta swsta comments
+@app.route('/comment/<string:id>/')
+def comment(id):
+    #Create cursor
+    cur = mysql.connection.cursor()
+    #Get Comment
+    result = cur.execute("SELECT * FROM comments WHERE id = %s", [id])
+    comment = cur.fetchone()
+    return render_template('comment.html', comment=comment)
+
+
+#Add comment
+@app.route('/add_comments', methods=['GET', 'POST'])
+@is_logged_in
+def add_comment():
+
+    form = CommentForm(request.form)
+    if request.method == 'POST' and form.validate():
+        body = form.body.data
+        #Create cursor
+        cur = mysql.connection.cursor()
+        #execute
+        cur.execute("INSERT INTO comments(author, body, article_id) VALUES(%s, %s, %s)", (session['username'], body, 1))
+        #commit
+        mysql.connection.commit()
+        #close connection
+        cur.close()
+        flash('Comment created', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('add_comments.html', form=form)
+
+
+
+
+
+
+#Edit comment
+@app.route('/edit_comment/<string:id>', methods=['GET', 'POST'])
+@is_logged_in
+def edit_comment(id):
+    #create cursor
+    cur = mysql.connection.cursor()
+    #get comment by id
+    result = cur.execute("SELECT * FROM comments WHERE id = %s",[id])
+    comment = cur.fetchone()
+    #Get form
+    form = CommentForm(request.form)
+    #populate comment form fields
+    form.body.data = comment['body']
+
+    if request.method == 'POST' and form.validate():
+        body = request.form['body']
+        #Create cursor
+        cur = mysql.connection.cursor()
+        #execute
+        cur.execute("UPDATE comments SET  body=%s WHERE id =%s",( body, id))
+        #commit
+        mysql.connection.commit()
+        #close connection
+        cur.close()
+        flash('Comment Updated', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('edit_comment.html', form=form)
+
+#Delete article
+@app.route('/delete_comment/<string:id>', methods=['POST'])
+@is_logged_in
+def delete_comment(id):
+    #create cursor
+    cur = mysql.connection.cursor()
+    #execute
+    cur.execute("DELETE FROM comments WHERE id = %s", [id])
+    #commit
+    mysql.connection.commit()
+    #close connection
+    cur.close()
+    flash('Comment Deleted', 'success')
+    return redirect(url_for('dashboard'))
+
+
+
 
 
 if __name__ == '__main__':
