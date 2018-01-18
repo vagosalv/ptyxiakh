@@ -2,5 +2,4 @@ Flask
 -e .
 WTForms==2.1
 Flask_MySQLdb==0.2.0
-Flask==0.12.2
 passlib==1.6.1
